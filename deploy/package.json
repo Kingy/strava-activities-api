@@ -1,0 +1,28 @@
+{
+  "name": "strava-activities-lambda",
+  "version": "1.0.0",
+  "description": "API for Strava Activities World Map - AWS Lambda Deployment",
+  "main": "lambda.js",
+  "scripts": {
+    "deploy": "serverless deploy",
+    "deploy:dev": "serverless deploy --stage dev",
+    "deploy:prod": "serverless deploy --stage prod",
+    "offline": "serverless offline",
+    "logs": "serverless logs -f api -t",
+    "remove": "serverless remove",
+    "test:local": "serverless invoke local -f api"
+  },
+  "dependencies": {
+    "@aws-sdk/client-dynamodb": "^3.840.0",
+    "@aws-sdk/lib-dynamodb": "^3.840.0",
+    "axios": "^1.10.0",
+    "cors": "^2.8.5",
+    "dotenv": "^17.0.0",
+    "express": "^5.1.0",
+    "serverless-http": "^3.2.0",
+    "serverless-offline": "^14.4.0"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.10"
+  }
+}

@@ -1,0 +1,82 @@
+# serverless.yml - Serverless Framework configuration for AWS deployment
+service: strava-activities-api
+
+frameworkVersion: "3"
+
+provider:
+  name: aws
+  runtime: nodejs18.x
+  region: us-east-1
+  stage: ${opt:stage, 'prod'}
+  memorySize: 512
+  timeout: 30
+
+  # IAM permissions for Lambda to access DynamoDB
+  iam:
+    role:
+      statements:
+        - Effect: Allow
+          Action:
+            - dynamodb:Query
+            - dynamodb:Scan
+            - dynamodb:GetItem
+            - dynamodb:PutItem
+            - dynamodb:UpdateItem
+            - dynamodb:DeleteItem
+            - dynamodb:BatchWriteItem
+          Resource:
+            - "arn:aws:dynamodb:${self:provider.region}:*:table/strava-activities"
+            - "arn:aws:dynamodb:${self:provider.region}:*:table/strava-auth"
+            - "arn:aws:dynamodb:${self:provider.region}:*:table/strava-activities/index/*"
+
+  # Environment variables
+  environment:
+    NODE_ENV: production
+    AWS_REGION: ${self:provider.region}
+    DYNAMODB_ACTIVITIES_TABLE: strava-activities
+    DYNAMODB_AUTH_TABLE: strava-auth
+    STRAVA_CLIENT_ID: ${env:STRAVA_CLIENT_ID}
+    STRAVA_CLIENT_SECRET: ${env:STRAVA_CLIENT_SECRET}
+    STRAVA_REDIRECT_URI: ${env:STRAVA_REDIRECT_URI}
+    FRONTEND_URL: ${env:FRONTEND_URL}
+    GOOGLE_GEOCODING_API_KEY: ${env:GOOGLE_GEOCODING_API_KEY}
+
+functions:
+  api:
+    handler: lambda.handler
+    events:
+      - httpApi:
+          path: /{proxy+}
+          method: ANY
+      - httpApi:
+          path: /
+          method: ANY
+    # Increase timeout for sync operations
+    timeout: 900 # 15 minutes max for Lambda
+
+  # Separate function for long-running sync operations
+  syncActivities:
+    handler: sync-lambda.handler
+    timeout: 900 # 15 minutes
+    memorySize: 1024
+    events:
+      - httpApi:
+          path: /sync/{proxy+}
+          method: ANY
+
+plugins:
+  - serverless-http
+  - serverless-offline
+
+custom:
+  serverless-offline:
+    httpPort: 3001
+
+# Package configuration
+package:
+  patterns:
+    - "!node_modules/aws-sdk/**"
+    - "!.git/**"
+    - "!*.md"
+    - "!test/**"
+    - "!scripts/**"
