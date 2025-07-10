@@ -1,17 +1,16 @@
-# serverless.yml - Serverless Framework configuration for AWS deployment
 service: strava-activities-api
 
-frameworkVersion: "3"
+frameworkVersion: "4"
 
 provider:
   name: aws
   runtime: nodejs18.x
   region: us-east-1
   stage: ${opt:stage, 'prod'}
+  profile: iamadmin-general
   memorySize: 512
   timeout: 30
 
-  # IAM permissions for Lambda to access DynamoDB
   iam:
     role:
       statements:
@@ -24,15 +23,15 @@ provider:
             - dynamodb:UpdateItem
             - dynamodb:DeleteItem
             - dynamodb:BatchWriteItem
+            - dynamodb:DescribeTable
           Resource:
             - "arn:aws:dynamodb:${self:provider.region}:*:table/strava-activities"
             - "arn:aws:dynamodb:${self:provider.region}:*:table/strava-auth"
             - "arn:aws:dynamodb:${self:provider.region}:*:table/strava-activities/index/*"
+            - "arn:aws:dynamodb:${self:provider.region}:*:table/strava-auth/index/*"
 
-  # Environment variables
   environment:
     NODE_ENV: production
-    AWS_REGION: ${self:provider.region}
     DYNAMODB_ACTIVITIES_TABLE: strava-activities
     DYNAMODB_AUTH_TABLE: strava-auth
     STRAVA_CLIENT_ID: ${env:STRAVA_CLIENT_ID}
@@ -45,34 +44,37 @@ functions:
   api:
     handler: lambda.handler
     events:
-      - httpApi:
+      - http: # Changed from httpApi to http
           path: /{proxy+}
           method: ANY
-      - httpApi:
+          cors: true
+      - http: # Changed from httpApi to http
           path: /
           method: ANY
-    # Increase timeout for sync operations
-    timeout: 900 # 15 minutes max for Lambda
+          cors: true
+    timeout: 30
 
-  # Separate function for long-running sync operations
   syncActivities:
     handler: sync-lambda.handler
-    timeout: 900 # 15 minutes
+    timeout: 900
     memorySize: 1024
-    events:
-      - httpApi:
-          path: /sync/{proxy+}
-          method: ANY
 
 plugins:
-  - serverless-http
+  - serverless-domain-manager
   - serverless-offline
 
 custom:
+  customDomain:
+    domainName: strava-api.tri2dev.com
+    basePath: ""
+    stage: ${self:provider.stage}
+    createRoute53Record: true
+    certificateArn: "arn:aws:acm:us-east-1:451036201000:certificate/f0113d86-a59c-4fae-acaa-b45bf7f9e829"
+    autoDomain: false
+    endpointType: edge # Keep your existing EDGE configuration
   serverless-offline:
     httpPort: 3001
 
-# Package configuration
 package:
   patterns:
     - "!node_modules/aws-sdk/**"

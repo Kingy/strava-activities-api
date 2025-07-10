@@ -10,28 +10,27 @@ const {
 
 const getDynamoDBClient = () => {
   console.log("Configuring DynamoDB client...");
-  console.log("Region:", process.env.AWS_REGION);
-  console.log(
-    "Access Key ID:",
-    process.env.AWS_ACCESS_KEY_ID
-      ? `${process.env.AWS_ACCESS_KEY_ID.substring(0, 8)}...`
-      : "MISSING"
-  );
-  console.log(
-    "Secret Key:",
-    process.env.AWS_SECRET_ACCESS_KEY ? "SET" : "MISSING"
-  );
+  console.log("Region:", process.env.AWS_REGION || "us-east-1");
 
+  // For Lambda, use IAM role credentials (no explicit credentials needed)
+  // For local development, use environment variables if available
   const clientConfig = {
     region: process.env.AWS_REGION || "us-east-1",
   };
 
-  // Only add credentials if they exist
-  if (process.env.AWS_ACCESS_KEY_ID && process.env.AWS_SECRET_ACCESS_KEY) {
+  // Only add explicit credentials if running locally (not in Lambda)
+  if (
+    process.env.NODE_ENV !== "production" &&
+    process.env.AWS_ACCESS_KEY_ID &&
+    process.env.AWS_SECRET_ACCESS_KEY
+  ) {
+    console.log("Using explicit credentials for local development");
     clientConfig.credentials = {
       accessKeyId: process.env.AWS_ACCESS_KEY_ID.trim(),
       secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY.trim(),
     };
+  } else if (process.env.NODE_ENV === "production") {
+    console.log("Using IAM role credentials for Lambda");
   }
 
   const client = new DynamoDBClient(clientConfig);

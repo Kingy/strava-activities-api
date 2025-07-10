@@ -32,10 +32,11 @@
     "cors": "^2.8.5",
     "dotenv": "^17.0.0",
     "express": "^5.1.0",
-    "serverless-http": "^3.2.0",
-    "serverless-offline": "^14.4.0"
+    "serverless-http": "^3.2.0"
   },
   "devDependencies": {
-    "nodemon": "^3.1.10"
+    "nodemon": "^3.1.10",
+    "serverless-domain-manager": "^8.0.0",
+    "serverless-offline": "^14.4.0"
   }
 }
